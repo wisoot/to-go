@@ -13,11 +13,40 @@ type MysqlGateway struct {
 }
 
 func (gateway *MysqlGateway) Create(item Item) (Item, error) {
-	//
+	res, err := sq.Insert(itemTable).
+		Columns("description", "is_finished", "created_at", "finished_at").
+		Values(
+			item.Description,
+			item.IsFinished,
+			item.CreatedAt.Format("2006-01-02 15:04:05"),
+			item.FinishedAt.Format("2006-01-02 15:04:05"),
+		).
+		RunWith(gateway.db).Exec()
+
+	if err != nil {
+		return item, err
+	}
+
+	id, err := res.LastInsertId()
+
+	if err != nil {
+		return item, err
+	}
+
+	item.Id = uint(id)
+
+	return item, nil
+
 }
 
 func (gateway *MysqlGateway) Update(item Item) (Item, error) {
-	//
+	_, err := sq.Update(itemTable).Where(sq.Eq{"id": item.Id}).
+		Set("description", item.Description).
+		Set("is_finished", item.IsFinished).
+		Set("finished_at", item.FinishedAt.Format("2006-01-02 15:04:05")).
+		RunWith(gateway.db).Exec()
+
+	return item, err
 }
 
 func (gateway *MysqlGateway) GetById(id uint) (Item, error) {
